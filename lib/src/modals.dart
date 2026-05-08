@@ -139,6 +139,88 @@ class LiveTimeIndicatorSettings {
       );
 }
 
+/// Declarative theme for time-slot background coloring in [DayView] and
+/// [WeekView].
+///
+/// Use this as a simpler alternative to [TimeSlotColorBuilder] for common
+/// patterns such as greying out past slots, highlighting business hours, or
+/// dimming weekends.
+///
+/// **Precedence when both are provided:**
+/// [TimeSlotColorBuilder] always wins unconditionally. [TimeSlotTheme] is only
+/// consulted when no [timeSlotColorBuilder] is set on the view.
+///
+/// **Rule evaluation order (first matching rule is used):**
+/// 1. [pastSlotColor]      — slot end is before now
+/// 2. [weekendSlotColor]   — slot date falls on Saturday or Sunday
+/// 3. [offHoursColor]      — slot start is outside business hours
+/// 4. [businessHoursColor] — slot start is inside business hours
+/// 5. [defaultSlotColor]   — fallback when no other rule matches
+///
+/// Rules whose color is `null` are skipped.
+class TimeSlotTheme {
+  /// Color for slots whose end time is before the current moment.
+  ///
+  /// When [applyPastRuleToEntirePastDay] is `true` (default), all slots on
+  /// days prior to today are also painted with this color.
+  final Color? pastSlotColor;
+
+  /// Color for slots that fall on Saturday or Sunday.
+  final Color? weekendSlotColor;
+
+  /// Color for slots whose start hour is inside
+  /// [[businessStartHour], [businessEndHour]).
+  final Color? businessHoursColor;
+
+  /// Color for slots whose start hour is outside business hours.
+  final Color? offHoursColor;
+
+  /// Fallback color when no other rule matches.
+  /// Defaults to `null` (no painting).
+  final Color? defaultSlotColor;
+
+  /// Inclusive start of business hours (0–23). Defaults to `9`.
+  final int businessStartHour;
+
+  /// Exclusive end of business hours (1–24). Defaults to `17`.
+  final int businessEndHour;
+
+  /// When `true`, [pastSlotColor] is applied to every slot on days before
+  /// today, not just past slots within today. Defaults to `true`.
+  final bool applyPastRuleToEntirePastDay;
+
+  /// Overrides the "now" reference used by the past-slot rule.
+  ///
+  /// When `null`, [DateTime.now] is used. Pass the same provider as
+  /// [LiveTimeIndicatorSettings.currentTimeProvider] to keep timezone
+  /// behavior consistent across the view.
+  final DateTime Function()? currentTimeProvider;
+
+  /// Declarative theme for time-slot background coloring.
+  const TimeSlotTheme({
+    this.pastSlotColor,
+    this.weekendSlotColor,
+    this.businessHoursColor,
+    this.offHoursColor,
+    this.defaultSlotColor,
+    this.businessStartHour = 9,
+    this.businessEndHour = 17,
+    this.applyPastRuleToEntirePastDay = true,
+    this.currentTimeProvider,
+  })  : assert(
+          businessStartHour >= 0 && businessStartHour < 24,
+          'businessStartHour must be between 0 and 23',
+        ),
+        assert(
+          businessEndHour > 0 && businessEndHour <= 24,
+          'businessEndHour must be between 1 and 24',
+        ),
+        assert(
+          businessStartHour < businessEndHour,
+          'businessStartHour must be less than businessEndHour',
+        );
+}
+
 /// Set `frequency = RepeatFrequency.daily` to repeat every day
 /// starting from event date (Inclusive).
 ///

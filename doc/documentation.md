@@ -258,6 +258,81 @@ WeekView(
 );
 ```
 
+## Time Slot Background Colors
+
+There are two ways to colorize time slots in `DayView` and `WeekView`:
+the declarative `timeSlotTheme` and the imperative `timeSlotColorBuilder`.
+
+When both are provided on the same view, `timeSlotColorBuilder` always wins
+unconditionally — `timeSlotTheme` is only consulted when no callback is set.
+
+### Declarative API — `TimeSlotTheme`
+
+`TimeSlotTheme` covers the most common patterns without requiring a callback:
+
+| Field | Default | Description |
+|---|---|---|
+| `pastSlotColor` | `null` | Color for slots that have already passed |
+| `weekendSlotColor` | `null` | Color for Saturday / Sunday slots |
+| `businessHoursColor` | `null` | Color for slots inside business hours |
+| `offHoursColor` | `null` | Color for slots outside business hours |
+| `defaultSlotColor` | `null` | Fallback when no other rule matches |
+| `businessStartHour` | `9` | Inclusive start of business hours (0–23) |
+| `businessEndHour` | `17` | Exclusive end of business hours (1–24) |
+| `applyPastRuleToEntirePastDay` | `true` | Apply `pastSlotColor` to all slots on past days |
+| `currentTimeProvider` | `null` | Override "now" (e.g., for timezone support) |
+
+Rules are evaluated in the order listed above; the first matching rule wins.
+Rules whose color is `null` are skipped.
+
+```dart
+DayView(
+  startHour: 8,
+  endHour: 18,
+  minuteSlotSize: MinuteSlotSize.minutes30,
+  timeSlotTheme: TimeSlotTheme(
+    pastSlotColor: Colors.grey.shade200,
+    weekendSlotColor: Colors.blue.shade50,
+    businessHoursColor: Colors.green.shade50,
+    offHoursColor: Colors.orange.shade50,
+    businessStartHour: 9,
+    businessEndHour: 17,
+  ),
+)
+```
+
+### Imperative API — `timeSlotColorBuilder`
+
+Use `timeSlotColorBuilder` when you need full per-slot control. The callback
+receives the slot date, start time, end time, and zero-based index and must
+return a `Color`.
+
+```dart
+Column(
+  children: [
+    DayView(
+      minuteSlotSize: MinuteSlotSize.minutes30,
+      startHour: 8,
+      endHour: 18,
+      timeSlotColorBuilder: (date, slotStartTime, slotEndTime, index) {
+        final isBusinessHours =
+            slotStartTime.hour >= 9 && slotStartTime.hour < 17;
+        return isBusinessHours ? Colors.green.shade50 : Colors.transparent;
+      },
+    ),
+    WeekView(
+      minuteSlotSize: MinuteSlotSize.minutes30,
+      startHour: 8,
+      endHour: 18,
+      timeSlotColorBuilder: (date, slotStartTime, slotEndTime, index) {
+        final isLunchHour = slotStartTime.hour == 12;
+        return isLunchHour ? Colors.orange.shade100 : Colors.transparent;
+      },
+    ),
+  ],
+)
+```
+
 ## Show Only Working Days in WeekView
 
 You can configure the week view to display only specific days:
