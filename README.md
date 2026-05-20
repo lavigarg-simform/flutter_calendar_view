@@ -41,11 +41,18 @@ dependencies:
 - Manage full-day events (add, remove, update)
 - Show working days in week view and day views
 - Sync event data between multiple views
+- **Custom time slot backgrounds** with `TimeSlotColorBuilder` (perfect for marking business hours, blocked time, or availability)
+- **Custom time slot backgrounds** with `TimeSlotTheme` (declarative) or `TimeSlotColorBuilder` (callback) — perfect for marking business hours, blocked time, past slots, weekends, or availability
 
 ## Documentation
 
 Visit our [documentation](https://simform-flutter-packages.web.app/calendarView) site for all
 implementation details, usage instructions, code examples, and advanced features.
+
+### Quick Customization Guide
+
+- **Time Slot Backgrounds**: Use `timeSlotColorBuilder` in DayView and WeekView to customize slot background colors.
+- **Time Slot Backgrounds**: Use `timeSlotTheme` (declarative, covers common patterns like business hours and past slots) or `timeSlotColorBuilder` (full per-slot control) in DayView and WeekView. When both are set, `timeSlotColorBuilder` wins unconditionally.
 
 ## Installation
 

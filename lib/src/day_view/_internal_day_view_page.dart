@@ -140,7 +140,15 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
   final TimestampCallback? onTimestampTap;
 
   /// A callback for rendering custom time slot background colors.
+  ///
+  /// When set, this takes precedence over [timeSlotTheme] unconditionally.
   final TimeSlotColorBuilder? timeSlotColorBuilder;
+
+  /// Declarative theme for time-slot background colors.
+  ///
+  /// Only consulted when [timeSlotColorBuilder] is null.
+  /// See [TimeSlotTheme] for rule details and evaluation order.
+  final TimeSlotTheme? timeSlotTheme;
 
   /// Defines a single day page.
   const InternalDayViewPage({
@@ -185,6 +193,7 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
     required this.onTimestampTap,
     this.keepScrollOffset = false,
     this.timeSlotColorBuilder,
+    this.timeSlotTheme,
   }) : super(key: key);
 
   @override
@@ -216,6 +225,61 @@ class _InternalDayViewPageState<T extends Object?>
     widget.scrollListener(scrollController);
   }
 
+  /// Resolves the background color for a single slot.
+  ///
+  /// [timeSlotColorBuilder] wins unconditionally when set. Otherwise the
+  /// [TimeSlotTheme] rules are evaluated in order. Returns transparent when
+  /// neither is configured.
+  Color _resolveSlotColor({
+    required DateTime date,
+    required DateTime slotStartTime,
+    required DateTime slotEndTime,
+    required int index,
+  }) {
+    // Tier 1: explicit callback always wins.
+    if (widget.timeSlotColorBuilder != null) {
+      return widget.timeSlotColorBuilder!(
+          date, slotStartTime, slotEndTime, index);
+    }
+
+    final theme = widget.timeSlotTheme;
+    if (theme == null) return Colors.transparent;
+
+    final now = theme.currentTimeProvider?.call() ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final slotDay = DateTime(date.year, date.month, date.day);
+
+    // Rule 1: past slot / past day.
+    if (theme.pastSlotColor != null) {
+      final isPastDay = slotDay.isBefore(today);
+      final isPastSlotToday = slotDay == today && slotEndTime.isBefore(now);
+      if ((isPastDay && theme.applyPastRuleToEntirePastDay) ||
+          isPastSlotToday) {
+        return theme.pastSlotColor!;
+      }
+    }
+
+    // Rule 2: weekend.
+    final isWeekend =
+        date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+    if (theme.weekendSlotColor != null && isWeekend) {
+      return theme.weekendSlotColor!;
+    }
+
+    // Rule 3 / 4: off-hours vs business hours.
+    final inBusiness = slotStartTime.hour >= theme.businessStartHour &&
+        slotStartTime.hour < theme.businessEndHour;
+    if (inBusiness && theme.businessHoursColor != null) {
+      return theme.businessHoursColor!;
+    }
+    if (!inBusiness && theme.offHoursColor != null) {
+      return theme.offHoursColor!;
+    }
+
+    // Rule 5: fallback.
+    return theme.defaultSlotColor ?? Colors.transparent;
+  }
+
   /// Builds the background color layer for time slots in the day view.
   ///
   /// Uses the [timeSlotColorBuilder] callback to determine each slot's color,
@@ -244,11 +308,11 @@ class _InternalDayViewPageState<T extends Object?>
       (slotIndex) {
         final slotStartTime = startDateTime.add(slotDuration * slotIndex);
         final slotEndTime = slotStartTime.add(slotDuration);
-        return widget.timeSlotColorBuilder!(
-          widget.date,
-          slotStartTime,
-          slotEndTime,
-          slotIndex,
+        return _resolveSlotColor(
+          date: widget.date,
+          slotStartTime: slotStartTime,
+          slotEndTime: slotEndTime,
+          index: slotIndex,
         );
       },
     );
@@ -306,8 +370,10 @@ class _InternalDayViewPageState<T extends Object?>
                 width: widget.width,
                 child: Stack(
                   children: [
-                    // Render time slot backgrounds if color builder is provided
-                    if (widget.timeSlotColorBuilder != null)
+                    // Render time slot backgrounds when either the callback
+                    // or the declarative theme is configured.
+                    if (widget.timeSlotColorBuilder != null ||
+                        widget.timeSlotTheme != null)
                       _buildTimeSlotBackground(),
                     CustomPaint(
                       size: Size(widget.width, widget.height),

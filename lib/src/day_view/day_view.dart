@@ -229,7 +229,18 @@ class DayView<T extends Object?> extends StatefulWidget {
 
   /// A callback that resolves slot background color for each visible time slot.
   /// Useful for highlighting unavailable hours, business hours, or blocked time.
+  ///
+  /// When provided, this takes precedence over [timeSlotTheme] unconditionally.
   final TimeSlotColorBuilder? timeSlotColorBuilder;
+
+  /// Declarative theme for time-slot background colors.
+  ///
+  /// Provides a simpler alternative to [timeSlotColorBuilder] for common
+  /// patterns such as greying past slots, coloring business hours, or
+  /// dimming weekends. Only consulted when [timeSlotColorBuilder] is null.
+  ///
+  /// See [TimeSlotTheme] for the full list of rules and their precedence.
+  final TimeSlotTheme? timeSlotTheme;
 
   /// Main widget for day view.
   const DayView({
@@ -283,6 +294,7 @@ class DayView<T extends Object?> extends StatefulWidget {
     this.keepScrollOffset = false,
     this.onTimestampTap,
     this.timeSlotColorBuilder,
+    this.timeSlotTheme,
   })  : assert(!(onHeaderTitleTap != null && dayTitleBuilder != null),
             "can't use [onHeaderTitleTap] & [dayTitleBuilder] simultaneously"),
         assert(timeLineOffset >= 0,
@@ -333,6 +345,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
 
   late LiveTimeIndicatorSettings _liveTimeIndicatorSettings;
   late TimeSlotColorBuilder? _timeSlotColorBuilder;
+  late TimeSlotTheme? _timeSlotTheme;
 
   late PageController _pageController;
 
@@ -518,6 +531,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                             scrollListener: _scrollPageListener,
                             keepScrollOffset: widget.keepScrollOffset,
                             timeSlotColorBuilder: _timeSlotColorBuilder,
+                            timeSlotTheme: _timeSlotTheme,
                           ),
                         );
                       },
@@ -612,6 +626,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
         widget.dayDetectorBuilder ?? _defaultPressDetectorBuilder;
     _hourLinePainter = widget.hourLinePainter ?? _defaultHourLinePainter;
     _timeSlotColorBuilder = widget.timeSlotColorBuilder;
+    _timeSlotTheme = widget.timeSlotTheme;
   }
 
   /// Sets the current date of this month.
